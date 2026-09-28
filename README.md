@@ -99,12 +99,21 @@ Images are copied into `public/media/products/`; commit that folder (or move it 
 ## Deployment
 
 ### Vercel + Postgres (recommended)
-1. In `prisma/schema.prisma` set `provider = "postgresql"`, delete `prisma/migrations`, run
-   `npx prisma migrate dev --name init` against a Postgres `DATABASE_URL` (Neon, Supabase, RDS…) and commit the new migration.
-2. Import the repo in Vercel. Env vars: `DATABASE_URL`, `AUTH_SECRET`, `NEXT_PUBLIC_SITE_URL`,
-   `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `ADMIN_PHONES`.
-3. Build command: `prisma migrate deploy && next build`. Seed once: `DATABASE_URL=… npm run seed`.
-4. Add the Razorpay webhook pointing at the deployed URL.
+`prisma/schema.prisma` already targets `postgresql`; the build command (`prisma db push && next build`)
+pushes the schema to whatever `DATABASE_URL` is set at build time — no migration files to manage for a
+single-environment deploy.
+
+1. Import the repo in Vercel (vercel.com/new).
+2. Add a Postgres database from the project's **Storage** tab (Vercel Postgres / Neon) — this sets
+   `DATABASE_URL` automatically.
+3. Add the remaining env vars: `AUTH_SECRET`, `NEXT_PUBLIC_SITE_URL` (your `*.vercel.app` URL),
+   `ADMIN_PHONES`, and either real `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET`
+   or `PAYMENT_SIMULATOR="true"` to use the built-in simulator.
+4. Deploy. Seed once from your machine: `DATABASE_URL=<the Vercel Postgres URL> npm run seed`.
+5. If using real Razorpay keys, add the webhook pointing at the deployed URL.
+
+> If you outgrow a single environment (staging + prod, multiple devs), switch back to tracked
+> migrations: `npx prisma migrate dev --name init` and `prisma migrate deploy` in the build command.
 
 ### Docker / VPS (SQLite)
 ```bash
