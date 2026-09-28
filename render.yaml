@@ -1,0 +1,30 @@
+databases:
+  - name: zarilane-db
+    plan: free
+
+services:
+  - type: web
+    name: zarilane
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zarilane-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: ADMIN_PHONES
+        sync: false
+      - key: PAYMENT_SIMULATOR
+        value: "true"
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false

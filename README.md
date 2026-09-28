@@ -98,19 +98,24 @@ Images are copied into `public/media/products/`; commit that folder (or move it 
 
 ## Deployment
 
-### Vercel + Postgres (recommended)
+### Render + Postgres (recommended)
 `prisma/schema.prisma` already targets `postgresql`; the build command (`prisma db push && next build`)
 pushes the schema to whatever `DATABASE_URL` is set at build time — no migration files to manage for a
 single-environment deploy.
 
-1. Import the repo in Vercel (vercel.com/new).
-2. Add a Postgres database from the project's **Storage** tab (Vercel Postgres / Neon) — this sets
-   `DATABASE_URL` automatically.
-3. Add the remaining env vars: `AUTH_SECRET`, `NEXT_PUBLIC_SITE_URL` (your `*.vercel.app` URL),
-   `ADMIN_PHONES`, and either real `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET`
-   or `PAYMENT_SIMULATOR="true"` to use the built-in simulator.
-4. Deploy. Seed once from your machine: `DATABASE_URL=<the Vercel Postgres URL> npm run seed`.
-5. If using real Razorpay keys, add the webhook pointing at the deployed URL.
+`render.yaml` in the repo root defines the web service + Postgres DB as a Render **Blueprint**:
+
+1. Dashboard → **New → Blueprint** → pick this repo. Render provisions the `zarilane-db` Postgres
+   instance and the `zarilane` web service, and wires `DATABASE_URL` automatically.
+2. Fill in the env vars marked `sync: false` in `render.yaml`: `NEXT_PUBLIC_SITE_URL` (your
+   `*.onrender.com` URL, known after the first deploy), `ADMIN_PHONES`, and either real
+   `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET` or leave `PAYMENT_SIMULATOR`
+   at its default `"true"` to use the built-in simulator. `AUTH_SECRET` is generated for you.
+3. Deploy. Seed once from your machine: `DATABASE_URL=<the Render Postgres external URL> npm run seed`.
+4. If using real Razorpay keys, add the webhook pointing at the deployed URL.
+
+(No blueprint? Create the Postgres instance and web service by hand instead — build command
+`npm run build`, start command `npm start` — and set the same env vars.)
 
 > If you outgrow a single environment (staging + prod, multiple devs), switch back to tracked
 > migrations: `npx prisma migrate dev --name init` and `prisma migrate deploy` in the build command.
