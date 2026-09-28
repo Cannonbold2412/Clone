@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><radialGradient id="lg" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#e9c8f2"/><stop offset=".6" stop-color="#f3a9cf"/><stop offset="1" stop-color="#e98bbd"/></radialGradient></defs>
+  <circle cx="32" cy="32" r="31" fill="url(#lg)"/>
+  <text x="31" y="40" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="24" fill="#3b2a6b" letter-spacing="-1">ZL.</text>
+  <text x="32" y="49" text-anchor="middle" font-family="Arial, sans-serif" font-size="5" fill="#3b2a6b" letter-spacing=".5">ZARI LANE</text>
+</svg>
