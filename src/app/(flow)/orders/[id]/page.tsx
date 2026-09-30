@@ -8,7 +8,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inr } from "@/lib/format";
 import { ORDER_STEPS, STATUS_LABEL } from "@/lib/orders";
-import { gateway } from "@/lib/razorpay";
+import { gateway } from "@/lib/cashfree";
 
 export const metadata: Metadata = { title: "Order Details", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
   const reached = (s: string) => idx(o.status) >= idx(s);
   const eventAt = (s: string) => o.events.find((e) => e.status === s)?.createdAt;
   const g = gateway();
-  const methodLabel = o.paymentMethod === "COD" ? "Cash on Delivery" : o.paymentMethod === "PARTIAL" ? "Advance + COD" : "Online (Razorpay)";
+  const methodLabel = o.paymentMethod === "COD" ? "Cash on Delivery" : o.paymentMethod === "PARTIAL" ? "Advance + COD" : "Online (Cashfree)";
 
   return (
     <>
@@ -59,7 +59,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
               Any amount debited will be refunded automatically within 5–7 working days.
             </p>
             <div className="mt-5 flex flex-col items-center gap-2">
-              <RetryPayment orderId={o.id} gateway={{ mode: g.mode, keyId: g.keyId }} />
+              <RetryPayment orderId={o.id} gateway={{ mode: g.mode, env: g.env }} />
               <Link href="/bag" className="text-[13px] font-semibold underline">Back to bag</Link>
             </div>
           </div>
@@ -121,6 +121,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
             <dl className="space-y-1.5">
               <div className="flex justify-between"><dt>Total MRP</dt><dd>{inr(o.mrpTotal)}</dd></div>
               <div className="flex justify-between"><dt>Discount on MRP</dt><dd className="text-offer">-{inr(o.mrpTotal - o.subtotal)}</dd></div>
+              {o.offerDiscount > 0 && <div className="flex justify-between"><dt>Buy 2 Get 1 Free</dt><dd className="text-offer">-{inr(o.offerDiscount)}</dd></div>}
               {o.couponDiscount > 0 && <div className="flex justify-between"><dt>Coupon ({o.couponCode})</dt><dd className="text-offer">-{inr(o.couponDiscount)}</dd></div>}
               {o.paymentDiscount > 0 && <div className="flex justify-between"><dt>Payment discount</dt><dd className="text-offer">-{inr(o.paymentDiscount)}</dd></div>}
               <div className="flex justify-between"><dt>Delivery ({o.shippingMethod})</dt><dd>{o.shippingFee ? inr(o.shippingFee) : "FREE"}</dd></div>

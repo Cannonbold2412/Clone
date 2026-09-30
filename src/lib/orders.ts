@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { db } from "./db";
 import { HttpError } from "./auth";
 import { cartView, getCart } from "./cart";
-import { createRazorpayOrder } from "./razorpay";
+import { createCashfreeOrder } from "./cashfree";
 import type { PayMethod } from "./pricing";
 
 const orderNumber = () => "ZL" + Date.now().toString().slice(-8) + crypto.randomInt(10, 99);
@@ -43,7 +43,7 @@ export async function createCheckoutOrder(userId: string, input: { addressId: st
     const o = await tx.order.create({
       data: {
         number: orderNumber(), userId, status: online ? "PENDING_PAYMENT" : "CONFIRMED", paymentMethod: input.method,
-        subtotal: v.subtotal, mrpTotal: v.mrpTotal, couponCode: v.couponCode, couponDiscount: v.coupon, paymentDiscount: v.payment,
+        subtotal: v.subtotal, mrpTotal: v.mrpTotal, couponCode: v.couponCode, offerDiscount: v.bogo, couponDiscount: v.coupon, paymentDiscount: v.payment,
         shippingMethod: ship.name, shippingFee: ship.price, total: v.total, payNow: v.payNow, payOnDelivery: v.payOnDelivery,
         address: snapshot, cartHash, idempotencyKey: input.idempotencyKey,
         items: { create: v.items.map((i) => ({ variantId: i.variantId, name: i.name, size: i.size, image: i.image, price: i.price, mrp: i.mrp, qty: i.qty })) },
@@ -65,15 +65,16 @@ export async function createCheckoutOrder(userId: string, input: { addressId: st
   return db.order.findUniqueOrThrow({ where: { id: order.id }, include: { payments: true } });
 }
 
-/** Creates a fresh Razorpay order for a pending order (first attempt or retry after failure). */
+/** Creates a fresh Cashfree order for a pending order (first attempt or retry after failure). */
 export async function newPaymentAttempt(orderId: string) {
   const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: true } });
   if (o.status !== "PENDING_PAYMENT" && o.status !== "PAYMENT_FAILED") throw new HttpError(409, "This order is already " + o.status.toLowerCase().replace("_", " "));
   const open = o.payments.find((p) => p.status === "CREATED");
   if (open) return open;
-  const rp = await createRazorpayOrder(o.payNow * 100, o.number, { orderId: o.id });
+  const user = await db.user.findUniqueOrThrow({ where: { id: o.userId } });
+  const cf = await createCashfreeOrder(o.number, o.payNow, { id: user.id, phone: user.phone });
   if (o.status === "PAYMENT_FAILED") await db.order.update({ where: { id: o.id }, data: { status: "PENDING_PAYMENT" } });
-  return db.payment.create({ data: { orderId: o.id, amount: o.payNow * 100, status: "CREATED", razorpayOrderId: rp.id } });
+  return db.payment.create({ data: { orderId: o.id, amount: o.payNow * 100, status: "CREATED", gatewayOrderId: cf.id, sessionId: cf.sessionId } });
 }
 
 type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0];
@@ -92,13 +93,13 @@ async function confirmStockAndClearCart(tx: Tx, orderId: string, userId: string)
 }
 
 /** Idempotent: verify endpoint and webhook may both call this for the same payment. */
-export async function markPaid(razorpayOrderId: string, razorpayPaymentId: string, amountPaise?: number) {
+export async function markPaid(gatewayOrderId: string, gatewayPaymentId: string, amountPaise?: number) {
   return db.$transaction(async (tx) => {
-    const pay = await tx.payment.findUnique({ where: { razorpayOrderId }, include: { order: true } });
+    const pay = await tx.payment.findUnique({ where: { gatewayOrderId }, include: { order: true } });
     if (!pay) throw new HttpError(404, "Payment not found");
     if (pay.status === "PAID") return pay.order;
     if (amountPaise !== undefined && amountPaise !== pay.amount) throw new HttpError(400, "Amount mismatch");
-    await tx.payment.update({ where: { id: pay.id }, data: { status: "PAID", razorpayPaymentId, error: null } });
+    await tx.payment.update({ where: { id: pay.id }, data: { status: "PAID", gatewayPaymentId, error: null } });
     // Close any other open attempts for this order.
     await tx.payment.updateMany({ where: { orderId: pay.orderId, status: "CREATED" }, data: { status: "CANCELLED" } });
     const note = pay.order.paymentMethod === "PARTIAL" ? `Advance of ₹${pay.order.payNow} paid online` : "Payment received";
@@ -111,10 +112,10 @@ export async function markPaid(razorpayOrderId: string, razorpayPaymentId: strin
   });
 }
 
-export async function markPaymentFailed(razorpayOrderId: string, status: "FAILED" | "CANCELLED", error: string, razorpayPaymentId?: string) {
-  const pay = await db.payment.findUnique({ where: { razorpayOrderId }, include: { order: true } });
+export async function markPaymentFailed(gatewayOrderId: string, status: "FAILED" | "CANCELLED", error: string, gatewayPaymentId?: string) {
+  const pay = await db.payment.findUnique({ where: { gatewayOrderId }, include: { order: true } });
   if (!pay || pay.status === "PAID") return pay?.order ?? null;
-  await db.payment.update({ where: { id: pay.id }, data: { status, error: error.slice(0, 300), razorpayPaymentId: razorpayPaymentId ?? pay.razorpayPaymentId } });
+  await db.payment.update({ where: { id: pay.id }, data: { status, error: error.slice(0, 300), gatewayPaymentId: gatewayPaymentId ?? pay.gatewayPaymentId } });
   if (pay.order.status === "PENDING_PAYMENT")
     return db.order.update({
       where: { id: pay.orderId },

@@ -8,7 +8,7 @@ import { Icon } from "./Icon";
 import { LoginForm } from "./Login";
 import { http, useStore } from "./Store";
 import type { PayOrder } from "./usePayment";
-import { usePayment } from "./usePayment";
+import { usePayment, type Gateway } from "./usePayment";
 
 export function LoginGate() {
   const router = useRouter();
@@ -83,7 +83,7 @@ export function AddressBook({ initial, phone }: { initial: Address[]; phone: str
   );
 }
 
-export function RetryPayment({ orderId, gateway }: { orderId: string; gateway: { mode: "razorpay" | "simulator"; keyId: string } }) {
+export function RetryPayment({ orderId, gateway }: { orderId: string; gateway: Gateway }) {
   const { pay, modal } = usePayment(gateway);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");

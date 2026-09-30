@@ -244,7 +244,7 @@ export function Checkout({ coupons }: { coupons: (CouponInfo & { minAmount: numb
                 <h3 className="mb-2 text-[15px] font-bold">Payment Method</h3>
                 <div className="space-y-2">
                   {([
-                    ["ONLINE", "Pay Online", "UPI, Cards, Net Banking & Wallets via Razorpay", "Extra 20% off"],
+                    ["ONLINE", "Pay Online", "UPI, Cards, Net Banking & Wallets via Cashfree", "Extra 20% off"],
                     ["PARTIAL", `Pay ${inr(PARTIAL_ADVANCE)} now, rest on delivery`, "Pay a small advance online, balance in cash", "Extra ₹50 off"],
                     ["COD", "Cash on Delivery", "Pay in cash when your order arrives", null],
                   ] as const).map(([m, t, d, badge]) => (
@@ -265,6 +265,7 @@ export function Checkout({ coupons }: { coupons: (CouponInfo & { minAmount: numb
                 <dl className="space-y-2">
                   <div className="flex justify-between"><dt>Total MRP</dt><dd>{inr(cart.mrpTotal)}</dd></div>
                   <div className="flex justify-between"><dt>Discount on MRP</dt><dd className="text-offer">-{inr(cart.saving)}</dd></div>
+                  {cart.bogo > 0 && <div className="flex justify-between"><dt>Buy 2 Get 1 Free</dt><dd className="text-offer">-{inr(cart.bogo)}</dd></div>}
                   {cart.couponCode && (
                     <div className="flex justify-between"><dt>Coupon ({cart.couponCode}) <button onClick={removeCoupon} className="ml-1 text-[11px] underline">Remove</button></dt><dd className={cart.couponError ? "text-sale" : "text-offer"}>{cart.couponError ? "Not applicable" : `-${inr(cart.coupon)}`}</dd></div>
                   )}

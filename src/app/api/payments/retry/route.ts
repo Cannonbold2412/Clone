@@ -10,5 +10,5 @@ export const POST = api(async (req) => {
   const order = await db.order.findFirst({ where: { id: orderId, userId: u.id } });
   if (!order) throw new HttpError(404, "Order not found");
   const p = await newPaymentAttempt(order.id);
-  return { orderId: order.id, number: order.number, payment: { razorpayOrderId: p.razorpayOrderId, amount: p.amount }, prefill: { contact: u.phone, name: u.name ?? "" } };
+  return { orderId: order.id, number: order.number, payment: { gatewayOrderId: p.gatewayOrderId, sessionId: p.sessionId, amount: p.amount }, prefill: { contact: u.phone, name: u.name ?? "" } };
 });

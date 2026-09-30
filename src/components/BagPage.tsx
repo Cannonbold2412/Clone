@@ -96,14 +96,16 @@ export function BagPage({ coupons }: { coupons: (CouponInfo & { minAmount: numbe
           </div>
         )}
         <div className="mt-3 bg-[#f6f6f6] px-6 py-6 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:mt-0 max-md:py-4">
-          <div className="flex justify-between text-[17px] font-bold"><span>Subtotal ({cart.qty} items)</span><span>{inr(cart.subtotal - cart.coupon)}</span></div>
-          <p className="mt-1 text-[14px] text-offer">Saving {inr(cart.saving + cart.coupon)}</p>
+          <div className="flex justify-between text-[17px] font-bold"><span>Subtotal ({cart.qty} items)</span><span>{inr(cart.subtotal - cart.bogo - cart.coupon)}</span></div>
+          <p className="mt-1 text-[14px] text-offer">Saving {inr(cart.saving + cart.bogo + cart.coupon)}</p>
+          {cart.bogo > 0 && <p className="mt-1 text-[13px] font-semibold text-offer">Buy 2 Get 1 Free applied: -{inr(cart.bogo)}</p>}
+          {cart.qty % 3 === 2 && <p className="mt-1 text-[13px] text-offer">Add 1 more item to get 1 free!</p>}
           <button disabled={outOfStock} onClick={() => router.push("/checkout")} className="btn-black mt-6 h-[45px] w-full text-[15px] normal-case max-md:mt-3">Checkout</button>
         </div>
         <div className="h-[140px] md:hidden" />
       </div>
 
-      <OffersDrawer open={offers} onClose={() => setOffers(false)} coupons={eligible} withInput onApply={applyCoupon} applied={cart.couponError ? null : cart.couponCode} saving={(k) => (k === "ONLINE" ? onlineDiscount(cart.subtotal - cart.coupon) : 50)} />
+      <OffersDrawer open={offers} onClose={() => setOffers(false)} coupons={eligible} withInput onApply={applyCoupon} applied={cart.couponError ? null : cart.couponCode} saving={(k) => (k === "ONLINE" ? onlineDiscount(cart.subtotal - cart.bogo - cart.coupon) : k === "PARTIAL" ? 50 : 0)} />
     </div>
   );
 }

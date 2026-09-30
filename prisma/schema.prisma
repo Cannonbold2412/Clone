@@ -147,6 +147,7 @@ model Order {
   subtotal       Int
   mrpTotal       Int
   couponCode     String?
+  offerDiscount  Int         @default(0) // Buy 2 Get 1 Free
   couponDiscount Int         @default(0)
   paymentDiscount Int        @default(0)
   shippingMethod String
@@ -184,11 +185,13 @@ model Payment {
   id                String   @id @default(cuid())
   orderId           String
   order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider          String   @default("razorpay")
+  provider          String   @default("cashfree")
   amount            Int // paise
   status            String // CREATED | PAID | FAILED | CANCELLED
-  razorpayOrderId   String   @unique
-  razorpayPaymentId String?  @unique
+  // @map keeps the original column names so `prisma db push` needs no column rename on existing databases.
+  gatewayOrderId    String   @unique @map("razorpayOrderId")
+  gatewayPaymentId  String?  @unique @map("razorpayPaymentId")
+  sessionId         String? // Cashfree payment_session_id for opening checkout
   error             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

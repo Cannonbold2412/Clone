@@ -18,7 +18,7 @@ export const POST = api(async (req) => {
   const payment = needsPayment ? await newPaymentAttempt(order.id) : null;
   return {
     orderId: order.id, number: order.number, status: order.status, payNow: order.payNow,
-    payment: payment && { razorpayOrderId: payment.razorpayOrderId, amount: payment.amount },
+    payment: payment && { gatewayOrderId: payment.gatewayOrderId, sessionId: payment.sessionId, amount: payment.amount },
     prefill: { contact: u.phone, name: u.name ?? "" },
   };
 });

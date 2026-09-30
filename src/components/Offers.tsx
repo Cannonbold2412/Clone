@@ -9,6 +9,7 @@ import { Icon } from "./Icon";
 export type CouponInfo = { code: string; title: string; description: string; eligible?: boolean };
 
 const CHECKOUT_OFFERS = [
+  { key: "BOGO", title: "Buy 2 Get 1 Free", code: "AUTO_APPLIED", detail: "Add any 3 items to your bag and the lowest-priced one is free. Buy 6 and get 2 free, and so on. Applied automatically in your bag and can be combined with the other offers." },
   { key: "ONLINE", title: `Pay Online | Extra ${ONLINE_OFF_PCT}% off`, code: "ONLINE_DISCOUNT", detail: `Get extra ${ONLINE_OFF_PCT}% off (up to ${inr(ONLINE_OFF_MAX)}) when you pay online using UPI, cards, net banking or wallets. Applied automatically at the payment step.` },
   { key: "PARTIAL", title: `Pay Advance Amount | Extra ${inr(PARTIAL_OFF)} off`, code: "ADVANCE_DISCOUNT", detail: `Pay just ${inr(PARTIAL_ADVANCE)} online now, the rest in cash on delivery, and get an extra ${inr(PARTIAL_OFF)} off. Applied automatically at the payment step.` },
 ];

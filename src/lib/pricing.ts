@@ -27,20 +27,30 @@ export function couponError(c: CouponRule | null, subtotal: number, qty: number)
   return null;
 }
 
-export function couponDiscount(c: CouponRule | null, subtotal: number, qty: number) {
+/** `base` is the amount the discount applies to (subtotal after the free item); eligibility is judged on the full subtotal. */
+export function couponDiscount(c: CouponRule | null, subtotal: number, qty: number, base = subtotal) {
   if (!c || couponError(c, subtotal, qty)) return 0;
-  const raw = c.kind === "PERCENT" ? Math.floor((subtotal * c.value) / 100) : c.value;
-  return Math.min(raw, c.maxDiscount ?? raw, subtotal);
+  const raw = c.kind === "PERCENT" ? Math.floor((base * c.value) / 100) : c.value;
+  return Math.min(raw, c.maxDiscount ?? raw, base);
+}
+
+export const BOGO_GROUP = 3; // Buy 2 Get 1 Free: in every group of 3 units, the cheapest one is free.
+
+/** Value of the free units: the cheapest floor(qty/3) units across the whole bag. Prices themselves never change. */
+export function bogoDiscount(lines: Line[]) {
+  const units = lines.flatMap((l) => Array<number>(l.qty).fill(l.price)).sort((a, b) => a - b);
+  return units.slice(0, Math.floor(units.length / BOGO_GROUP)).reduce((s, p) => s + p, 0);
 }
 
 export function totals(lines: Line[], opts: { coupon?: CouponRule | null; method?: PayMethod | null; shippingFee?: number } = {}) {
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const mrpTotal = lines.reduce((s, l) => s + l.mrp * l.qty, 0);
   const qty = lines.reduce((s, l) => s + l.qty, 0);
-  const coupon = couponDiscount(opts.coupon ?? null, subtotal, qty);
-  const payment = opts.method ? paymentDiscount(opts.method, subtotal - coupon) : 0;
+  const bogo = bogoDiscount(lines);
+  const coupon = couponDiscount(opts.coupon ?? null, subtotal, qty, subtotal - bogo);
+  const payment = opts.method ? paymentDiscount(opts.method, subtotal - bogo - coupon) : 0;
   const shipping = opts.shippingFee ?? 0;
-  const total = subtotal - coupon - payment + shipping;
+  const total = subtotal - bogo - coupon - payment + shipping;
   const payNow = opts.method === "ONLINE" ? total : opts.method === "PARTIAL" ? Math.min(PARTIAL_ADVANCE, total) : 0;
-  return { subtotal, mrpTotal, qty, saving: mrpTotal - subtotal, coupon, payment, shipping, total, payNow, payOnDelivery: total - payNow };
+  return { subtotal, mrpTotal, qty, saving: mrpTotal - subtotal, bogo, coupon, payment, shipping, total, payNow, payOnDelivery: total - payNow };
 }

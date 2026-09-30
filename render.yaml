@@ -22,9 +22,15 @@ services:
         sync: false
       - key: PAYMENT_SIMULATOR
         value: "true"
-      - key: RAZORPAY_KEY_ID
+      - key: CASHFREE_APP_ID
         sync: false
-      - key: RAZORPAY_KEY_SECRET
+      - key: CASHFREE_SECRET_KEY
         sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
+      - key: CASHFREE_ENV
+        value: sandbox
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_VERIFY_SID
         sync: false
