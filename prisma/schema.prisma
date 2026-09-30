@@ -10,7 +10,8 @@ datasource db {
 
 model User {
   id        String    @id @default(cuid())
-  phone     String    @unique
+  email     String?   @unique // login identity (OTP is emailed)
+  phone     String?   // contact data only, not used to log in
   name      String?
   createdAt DateTime  @default(now())
   addresses Address[]
@@ -20,14 +21,14 @@ model User {
 
 model OtpCode {
   id        String   @id @default(cuid())
-  phone     String
+  email     String    @map("phone") // column keeps its old name; it now holds the email
   codeHash  String
   attempts  Int      @default(0)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())
 
-  @@index([phone])
+  @@index([email])
 }
 
 model Address {

@@ -175,7 +175,7 @@ export function Checkout({ coupons }: { coupons: (CouponInfo & { minAmount: numb
                 <h2 className="mb-4 text-[18px] font-bold">{editing === "new" ? "Add New Address" : "Edit Address"}</h2>
                 <AddressForm
                   initial={editing === "new" ? undefined : editing}
-                  defaultPhone={user?.phone}
+                  defaultEmail={user?.email}
                   onCancel={addresses.length ? () => setEditing(null) : undefined}
                   onSaved={(a) => {
                     setAddresses((xs) => [a, ...(xs ?? []).filter((x) => x.id !== a.id)].map((x) => (a.isDefault && x.id !== a.id ? { ...x, isDefault: false } : x)));

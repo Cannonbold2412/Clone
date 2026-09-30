@@ -19,8 +19,8 @@ const RULES: Record<string, [RegExp, string]> = {
   state: [/.+/, "Please select a state"],
 };
 
-export function AddressForm({ initial, defaultPhone, onSaved, onCancel }: { initial?: Address; defaultPhone?: string; onSaved: (a: Address) => void; onCancel?: () => void }) {
-  const [f, setF] = useState(() => (initial ? { ...EMPTY, ...initial, email: initial.email ?? "", landmark: initial.landmark ?? "" } : { ...EMPTY, phone: defaultPhone ?? "" }));
+export function AddressForm({ initial, defaultEmail, onSaved, onCancel }: { initial?: Address; defaultEmail?: string; onSaved: (a: Address) => void; onCancel?: () => void }) {
+  const [f, setF] = useState(() => (initial ? { ...EMPTY, ...initial, email: initial.email ?? "", landmark: initial.landmark ?? "" } : { ...EMPTY, email: defaultEmail ?? "" }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState("");

@@ -15,8 +15,8 @@ export default async function AddressesPage() {
     <>
       <FlowHeader title="Saved Addresses" backHref="/" />
       <div className="container-x py-6 pb-24">
-        <AccountNav phone={user.phone} />
-        <AddressBook initial={list} phone={user.phone} />
+        <AccountNav email={user.email ?? ""} />
+        <AddressBook initial={list} email={user.email ?? ""} />
       </div>
     </>
   );

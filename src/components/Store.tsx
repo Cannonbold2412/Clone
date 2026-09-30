@@ -5,7 +5,7 @@ import type { CartView } from "@/lib/cart";
 import { BagDrawer } from "./BagDrawer";
 import { Icon } from "./Icon";
 
-type User = { id: string; phone: string; name: string | null; admin?: boolean } | null;
+type User = { id: string; email: string; name: string | null; admin?: boolean } | null;
 type Toast = { id: number; text: string; kind: "ok" | "err" };
 
 type Store = {

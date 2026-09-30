@@ -18,13 +18,13 @@ export function LoginGate() {
         <img src="/logo.svg" alt="" className="h-16 w-16 rounded-xl bg-white p-1" />
       </div>
       <div className="flex flex-1 justify-center px-4 pt-10 md:pt-16">
-        <div className="w-full max-w-[540px]"><LoginForm label="Enter Whatsapp no.*" onDone={() => router.refresh()} /></div>
+        <div className="w-full max-w-[540px]"><LoginForm label="Enter Email*" onDone={() => router.refresh()} /></div>
       </div>
     </div>
   );
 }
 
-export function AccountNav({ phone }: { phone: string }) {
+export function AccountNav({ email }: { email: string }) {
   const path = usePathname();
   const router = useRouter();
   const { refresh, toast } = useStore();
@@ -42,12 +42,12 @@ export function AccountNav({ phone }: { phone: string }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line">
       <div className="flex gap-6">{tab("/orders", "My Orders")}{tab("/addresses", "Saved Addresses")}</div>
-      <div className="flex items-center gap-4 pb-2 text-[13px]"><span className="text-muted">+91 {phone}</span><button onClick={logout} className="font-semibold underline">Logout</button></div>
+      <div className="flex items-center gap-4 pb-2 text-[13px]"><span className="text-muted">{email}</span><button onClick={logout} className="font-semibold underline">Logout</button></div>
     </div>
   );
 }
 
-export function AddressBook({ initial, phone }: { initial: Address[]; phone: string }) {
+export function AddressBook({ initial, email }: { initial: Address[]; email: string }) {
   const [list, setList] = useState(initial);
   const [editing, setEditing] = useState<Address | "new" | null>(initial.length ? null : "new");
   const { toast } = useStore();
@@ -55,7 +55,7 @@ export function AddressBook({ initial, phone }: { initial: Address[]; phone: str
     return (
       <div className="mt-6 max-w-[560px]">
         <h2 className="mb-4 text-[18px] font-bold">{editing === "new" ? "Add New Address" : "Edit Address"}</h2>
-        <AddressForm initial={editing === "new" ? undefined : editing} defaultPhone={phone} onCancel={list.length ? () => setEditing(null) : undefined}
+        <AddressForm initial={editing === "new" ? undefined : editing} defaultEmail={email} onCancel={list.length ? () => setEditing(null) : undefined}
           onSaved={(a) => { setList((xs) => [a, ...xs.filter((x) => x.id !== a.id)].map((x) => (a.isDefault && x.id !== a.id ? { ...x, isDefault: false } : x))); setEditing(null); toast("Address saved"); }} />
       </div>
     );

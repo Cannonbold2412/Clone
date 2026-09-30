@@ -1,7 +1,7 @@
 # Zari Lane — e-commerce storefront
 
 Full-stack ethnic-wear store (lehenga cholis, sarees): catalogue, search, filters, variants, bag, coupons,
-phone-OTP login, addresses, shipping methods, Cashfree payments (online / advance + COD / COD), Twilio Verify OTP,
+email-OTP login, addresses, shipping methods, Cashfree payments (online / advance + COD / COD), Twilio Verify OTP,
 order confirmation, order tracking and a small admin for order status.
 
 **Stack:** Next.js 15 (App Router) · React 19 · Tailwind CSS 4 · Prisma 6 (SQLite dev / Postgres prod) · Zod · jose (JWT sessions) · Cashfree · Twilio Verify.
@@ -20,10 +20,11 @@ npm test                    # pricing + signature self-checks
 Generate an `AUTH_SECRET`: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ### Logging in during development
-Login is mobile number + OTP. With `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_VERIFY_SID` set, Twilio Verify
-sends and checks the SMS (a Twilio trial account only texts verified numbers; Indian numbers need DLT registration for live use).
+Login is email + OTP (the mobile number is only collected as delivery/contact data in the address form). With
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_VERIFY_SID` set, Twilio Verify emails and checks the code; the Verify
+service needs an Email integration (a SendGrid account and verified sender) configured in the Twilio Console.
 Without them, outside production, the OTP is shown under the OTP box ("Dev mode OTP") and printed in the server console as
-`[otp] <phone>: <code>`. In production Twilio is required. `ADMIN_PHONES` numbers can open `/admin`.
+`[otp] <email>: <code>`. In production Twilio is required. `ADMIN_EMAILS` addresses can open `/admin`.
 
 ## Payments (Cashfree)
 
@@ -111,7 +112,7 @@ single-environment deploy.
 1. Dashboard → **New → Blueprint** → pick this repo. Render provisions the `zarilane-db` Postgres
    instance and the `zarilane` web service, and wires `DATABASE_URL` automatically.
 2. Fill in the env vars marked `sync: false` in `render.yaml`: `NEXT_PUBLIC_SITE_URL` (your
-   `*.onrender.com` URL, known after the first deploy), `ADMIN_PHONES`, and either real
+   `*.onrender.com` URL, known after the first deploy), `ADMIN_EMAILS`, and either real
    `CASHFREE_APP_ID`/`CASHFREE_SECRET_KEY` (and `CASHFREE_ENV`), `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_VERIFY_SID`,
    or leave `PAYMENT_SIMULATOR` at its default `"true"` to use the built-in payment simulator (login needs Twilio in production). `AUTH_SECRET` is generated for you.
 3. Deploy. Seed once from your machine: `DATABASE_URL=<the Render Postgres external URL> npm run seed`.
@@ -132,6 +133,6 @@ The container runs `prisma migrate deploy` on start; seed once with
 `docker exec <id> npx tsx prisma/seed.ts`.
 
 ### Before going live
-- Set the Twilio Verify vars (and complete DLT registration for Indian SMS).
+- Set the Twilio Verify vars and connect SendGrid to the Verify service so OTP emails are delivered.
 - Use live Cashfree keys with `CASHFREE_ENV=production` and remove `PAYMENT_SIMULATOR`.
 - Stock is decremented on confirmation (no reservation during checkout) — see the `ponytail:` note in `src/lib/orders.ts`.

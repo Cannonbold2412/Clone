@@ -5,7 +5,7 @@ import { inr } from "@/lib/format";
 import { Icon } from "./Icon";
 import { http } from "./Store";
 
-export type PayOrder = { orderId: string; number: string; payment: { gatewayOrderId: string; sessionId: string; amount: number }; prefill: { contact: string; name: string } };
+export type PayOrder = { orderId: string; number: string; payment: { gatewayOrderId: string; sessionId: string; amount: number }; prefill: { email: string; name: string } };
 export type Gateway = { mode: "cashfree" | "simulator"; env: "sandbox" | "production" };
 export type Outcome = { result: "paid" | "failed" | "cancelled"; orderId: string; error?: string };
 

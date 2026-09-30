@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const user = await currentUser();
   if (!user) return <><FlowHeader title="Admin Login" backHref="/" /><LoginGate /></>;
-  if (!isAdmin(user.phone)) notFound();
+  if (!user.email || !isAdmin(user.email)) notFound();
   const { status } = await searchParams;
   const orders = await db.order.findMany({
     where: status ? { status } : undefined, orderBy: { createdAt: "desc" }, take: 200,
@@ -42,7 +42,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <tr key={o.id} className="border-b border-line align-top">
                     <td className="p-3 font-bold">#{o.number}</td>
                     <td className="p-3">{o.createdAt.toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}</td>
-                    <td className="p-3">{a.name}<br /><span className="text-muted">+91 {o.user.phone} · {a.city}</span></td>
+                    <td className="p-3">{a.name}<br /><span className="text-muted">{o.user.email} · +91 {a.phone} · {a.city}</span></td>
                     <td className="p-3">{o.items.map((i) => <div key={i.id}>{i.qty} × {i.name} ({i.size})</div>)}</td>
                     <td className="p-3 font-semibold">{inr(o.total)}</td>
                     <td className="p-3">{o.paymentMethod}<br /><span className="text-muted">{o.payments[0] ? `${o.payments[0].status} ${o.payments[0].gatewayPaymentId ?? ""}` : "—"}</span></td>

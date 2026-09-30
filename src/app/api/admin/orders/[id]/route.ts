@@ -7,7 +7,7 @@ import { NEXT_STATUS } from "@/lib/orders";
 
 export const PATCH = api<{ params: Promise<{ id: string }> }>(async (req, ctx) => {
   const u = await requireUser();
-  if (!isAdmin(u.phone)) throw new HttpError(403, "Forbidden");
+  if (!u.email || !isAdmin(u.email)) throw new HttpError(403, "Forbidden");
   const { status, note } = z.object({ status: z.string(), note: z.string().max(200).optional() }).parse(await body(req));
   const order = await db.order.findUnique({ where: { id: (await ctx.params).id }, include: { items: true } });
   if (!order) throw new HttpError(404, "Order not found");

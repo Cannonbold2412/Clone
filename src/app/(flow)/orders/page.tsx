@@ -21,7 +21,7 @@ export default async function OrdersPage() {
     <>
       <FlowHeader title="My Orders" backHref="/" />
       <div className="container-x py-6 pb-24">
-        <AccountNav phone={user.phone} />
+        <AccountNav email={user.email ?? ""} />
         {orders.length === 0 ? (
           <div className="py-20 text-center">
             <p className="text-[18px] font-semibold">No orders yet</p>

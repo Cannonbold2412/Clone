@@ -19,6 +19,6 @@ export const POST = api(async (req) => {
   return {
     orderId: order.id, number: order.number, status: order.status, payNow: order.payNow,
     payment: payment && { gatewayOrderId: payment.gatewayOrderId, sessionId: payment.sessionId, amount: payment.amount },
-    prefill: { contact: u.phone, name: u.name ?? "" },
+    prefill: { email: u.email ?? "", name: u.name ?? "" },
   };
 });

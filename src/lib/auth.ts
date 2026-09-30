@@ -42,65 +42,70 @@ export async function requireUser() {
   return u;
 }
 
-export const isAdmin = (phone: string) =>
-  (process.env.ADMIN_PHONES ?? "").split(",").map((s) => s.trim()).filter(Boolean).includes(phone);
+export const isAdmin = (email: string) =>
+  (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());
 
-// ---- OTP ----
-const hashOtp = (phone: string, code: string) =>
-  crypto.createHmac("sha256", key()).update(`${phone}:${code}`).digest("hex");
+// ---- OTP (emailed) ----
+const hashOtp = (email: string, code: string) =>
+  crypto.createHmac("sha256", key()).update(`${email}:${code}`).digest("hex");
 
-// Twilio Verify sends and checks the code. Without TWILIO_* (dev only) we fall back to a locally stored, hashed code.
+// Twilio Verify sends and checks the code over its email channel (needs a SendGrid email integration on the Verify service).
+// Without TWILIO_* (dev only) we fall back to a locally stored, hashed code.
 function twilio() {
   const sid = process.env.TWILIO_ACCOUNT_SID?.trim(), token = process.env.TWILIO_AUTH_TOKEN?.trim(), service = process.env.TWILIO_VERIFY_SID?.trim();
   return sid && token && service ? { sid, token, service } : null;
 }
 
-async function twilioVerify(path: "Verifications" | "VerificationCheck", phone: string, extra: Record<string, string> = {}) {
+async function twilioVerify(path: "Verifications" | "VerificationCheck", email: string, extra: Record<string, string> = {}) {
   const t = twilio()!;
   const res = await fetch(`https://verify.twilio.com/v2/Services/${t.service}/${path}`, {
     method: "POST",
     headers: { Authorization: "Basic " + Buffer.from(`${t.sid}:${t.token}`).toString("base64") },
-    body: new URLSearchParams({ To: `+91${phone}`, ...extra }),
+    body: new URLSearchParams({ To: email, ...extra }),
   });
-  return { status: res.status, data: (await res.json().catch(() => ({}))) as { status?: string } };
+  return { status: res.status, data: (await res.json().catch(() => ({}))) as { status?: string; code?: number; message?: string } };
 }
 
+const upsertUser = (email: string) => db.user.upsert({ where: { email }, update: {}, create: { email } });
+
 /** Sends an OTP. Returns the code only in local dev (no Twilio); with Twilio the code never touches our server. */
-export async function issueOtp(phone: string) {
-  const recent = await db.otpCode.count({ where: { phone, createdAt: { gt: new Date(Date.now() - 15 * 60_000) } } });
+export async function issueOtp(email: string) {
+  const recent = await db.otpCode.count({ where: { email, createdAt: { gt: new Date(Date.now() - 15 * 60_000) } } });
   if (recent >= 5) throw new HttpError(429, "Too many OTP requests. Please try again after some time.");
   const expiresAt = new Date(Date.now() + 5 * 60_000);
   if (twilio()) {
     // Row only counts sends for the rate limit above; Twilio holds the real code.
-    await db.otpCode.create({ data: { phone, codeHash: "twilio", expiresAt } });
-    const { status } = await twilioVerify("Verifications", phone, { Channel: "sms" });
+    await db.otpCode.create({ data: { email, codeHash: "twilio", expiresAt } });
+    const { status, data } = await twilioVerify("Verifications", email, { Channel: "email" });
+    if (status >= 400) console.error("[twilio] send failed", status, data.code, data.message);
     if (status === 429) throw new HttpError(429, "Too many OTP requests. Please try again after some time.");
     if (status >= 400) throw new HttpError(502, "Could not send OTP. Please try again.");
     return null;
   }
-  if (process.env.NODE_ENV === "production") throw new Error("SMS provider is not configured (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SID)");
+  if (process.env.NODE_ENV === "production") throw new Error("OTP email is not configured (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SID)");
   const code = String(crypto.randomInt(100000, 1000000));
-  await db.otpCode.create({ data: { phone, codeHash: hashOtp(phone, code), expiresAt } });
-  console.log(`[otp] ${phone}: ${code}`);
+  await db.otpCode.create({ data: { email, codeHash: hashOtp(email, code), expiresAt } });
+  console.log(`[otp] ${email}: ${code}`);
   return code;
 }
 
-export async function checkOtp(phone: string, code: string) {
+export async function checkOtp(email: string, code: string) {
   if (twilio()) {
-    const { status, data } = await twilioVerify("VerificationCheck", phone, { Code: code });
+    const { status, data } = await twilioVerify("VerificationCheck", email, { Code: code });
+    if (status >= 400 && status !== 404) console.error("[twilio] check failed", status, data.code, data.message);
     if (status === 404) throw new HttpError(400, "OTP expired. Please request a new one.");
     if (status === 429) throw new HttpError(429, "Too many wrong attempts. Please request a new OTP.");
     if (status >= 400) throw new HttpError(502, "Could not verify OTP. Please try again.");
     if (data.status !== "approved") throw new HttpError(400, "Incorrect OTP. Please try again.");
-    return db.user.upsert({ where: { phone }, update: {}, create: { phone } });
+    return upsertUser(email);
   }
-  const otp = await db.otpCode.findFirst({ where: { phone, usedAt: null }, orderBy: { createdAt: "desc" } });
+  const otp = await db.otpCode.findFirst({ where: { email, usedAt: null }, orderBy: { createdAt: "desc" } });
   if (!otp || otp.expiresAt < new Date()) throw new HttpError(400, "OTP expired. Please request a new one.");
   if (otp.attempts >= 5) throw new HttpError(429, "Too many wrong attempts. Please request a new OTP.");
-  if (otp.codeHash !== hashOtp(phone, code)) {
+  if (otp.codeHash !== hashOtp(email, code)) {
     await db.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
     throw new HttpError(400, "Incorrect OTP. Please try again.");
   }
   await db.otpCode.update({ where: { id: otp.id }, data: { usedAt: new Date() } });
-  return db.user.upsert({ where: { phone }, update: {}, create: { phone } });
+  return upsertUser(email);
 }

@@ -71,8 +71,7 @@ export async function newPaymentAttempt(orderId: string) {
   if (o.status !== "PENDING_PAYMENT" && o.status !== "PAYMENT_FAILED") throw new HttpError(409, "This order is already " + o.status.toLowerCase().replace("_", " "));
   const open = o.payments.find((p) => p.status === "CREATED");
   if (open) return open;
-  const user = await db.user.findUniqueOrThrow({ where: { id: o.userId } });
-  const cf = await createCashfreeOrder(o.number, o.payNow, { id: user.id, phone: user.phone });
+  const cf = await createCashfreeOrder(o.number, o.payNow, { id: o.userId, phone: (JSON.parse(o.address) as { phone: string }).phone });
   if (o.status === "PAYMENT_FAILED") await db.order.update({ where: { id: o.id }, data: { status: "PENDING_PAYMENT" } });
   return db.payment.create({ data: { orderId: o.id, amount: o.payNow * 100, status: "CREATED", gatewayOrderId: cf.id, sessionId: cf.sessionId } });
 }
